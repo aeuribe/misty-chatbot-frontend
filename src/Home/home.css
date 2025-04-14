@@ -1,0 +1,23 @@
+.home-container {
+  display: flex;
+  align-items: center;
+  width: 100vw; /* 100% del ancho de la ventana */
+  height: 100vh;
+}
+
+.home-title-container {
+  max-width: 50%;
+}
+
+.home-title {
+  color: #fff;
+  font-size: 3.5rem;
+}
+
+.home-button-container {
+  display: flex;
+  justify-content: center;
+  min-width: 50%;
+  
+
+}
