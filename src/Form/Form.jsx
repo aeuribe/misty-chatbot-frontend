@@ -15,7 +15,7 @@ import useFetchAndLoad from "../hooks/useFetchAndLoad.js";
 import { useApiRequest } from "../hooks/useCallApi.js";
 import { useAsync } from "../hooks/useAsyncClean.js";
 
-import { Client } from "../models/client.js";
+import { Client } from "../models/Client.js";
 import { Business } from "../models/Business.js";
 
 import {
