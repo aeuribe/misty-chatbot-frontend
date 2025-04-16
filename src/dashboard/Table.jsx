@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { Paper, Button, Grid, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
+import { getAllAppointmentsByEmail } from "../services/appointmentService.js";
+import { useAsync } from '../hooks/useAsyncClean';
+import useFetchAndLoad from "../hooks/useFetchAndLoad.js";
 
 // Datos simulados con los campos relevantes
 const data = [
@@ -48,23 +51,36 @@ const data = [
 
 const statuses = ['all', 'completed', 'pending'];
 
-export default function AppointmentList() {
+export default function AppointmentList({ email }) {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const { loading, callEndpoint } = useFetchAndLoad();
+  const [appointments, setAppointments] = useState([]);
+
+  // Get All Appointments by Email
+  const successFunctionGetAppointments = (data) => {
+    if (!data) return;
+    setAppointments(data);
+  };
+  const getAppointments = async () => {
+    return callEndpoint(getAllAppointmentsByEmail(email));
+  }; 
+  useAsync(getAppointments, successFunctionGetAppointments, null, null, []);
+
 
   // Filtrar las citas basadas en el estado y la búsqueda
-  const filteredData = data
+  const filteredData = appointments
     .filter(item => {
       if (filter === 'completed') return item.status === 'completed';
       if (filter === 'pending') return item.status === 'pending';
       return true;
     })
-    .filter(item => {
+    .filter(item => { 
       // Filtro basado en la búsqueda (por nombre, servicio, fecha o hora)
       const searchQuery = searchTerm.toLowerCase();
       return (
         item.client_name.toLowerCase().includes(searchQuery) ||
-        item.service.toLowerCase().includes(searchQuery) ||
+        item.service_name.toLowerCase().includes(searchQuery) ||
         item.date.toLowerCase().includes(searchQuery) ||
         item.start_time.toLowerCase().includes(searchQuery) ||
         item.end_time.toLowerCase().includes(searchQuery)

@@ -90,3 +90,9 @@ export const getAllAppointmentDataByNumber = (number) => {
   return { call: axios.get(`${API_URL}/appointments/number/${number}`, {signal: controller.signal}), controller }
 }
 
+export const getAllAppointmentsByEmail = (email) => {
+  console.log("he recibido el email:",email);
+  const controller = loadAbort();
+  return { call: axios.get(`${API_URL}/appointments/email/${email}`, {signal: controller.signal}), controller }
+}
+

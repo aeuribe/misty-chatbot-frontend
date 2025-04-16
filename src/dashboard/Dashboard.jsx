@@ -7,7 +7,11 @@ import ListItemText from "@mui/material/ListItemText";
 import LogoutButton from "../logoutButton";
 import DataTable from "./Table";
 import { MdOutlineDateRange } from "react-icons/md";
+import { useAuth0 } from "@auth0/auth0-react";
+
 const Dashboard = () => {
+  const { user, isAuthenticated, isLoading } = useAuth0();
+  
   return (
     <Box
       sx={{
@@ -102,7 +106,8 @@ const Dashboard = () => {
           }}
         >
           {/* <h2>Aquí irá la tabla</h2> */}
-          <DataTable />
+          {isAuthenticated && (<DataTable email={user.email}/>)}
+
         </Paper>
       </Box>
     </Box>
