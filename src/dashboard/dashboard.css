@@ -1,0 +1,10 @@
+.dashboard-avatar{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap:10px;
+}
+
+.dashboard-avatar p{
+    margin:0;
+}

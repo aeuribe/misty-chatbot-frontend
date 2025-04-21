@@ -4,14 +4,16 @@ import Paper from "@mui/material/Paper";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
+import Avatar from "@mui/material/Avatar";
 import LogoutButton from "../logoutButton";
 import DataTable from "./Table";
 import { MdOutlineDateRange } from "react-icons/md";
 import { useAuth0 } from "@auth0/auth0-react";
+import "./dashboard.css";
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();
-  
+
   return (
     <Box
       sx={{
@@ -37,7 +39,11 @@ const Dashboard = () => {
         }}
         elevation={5}
       >
-        <strong>Appointments</strong>
+        <div className="dashboard-avatar">
+          <Avatar src={user.picture}/>
+          <p>{user.nickname}</p>
+        </div>
+
         <h2 style={{ margin: 0 }}>Misty | Chatbot</h2>
         <LogoutButton />
       </Paper>
@@ -106,8 +112,7 @@ const Dashboard = () => {
           }}
         >
           {/* <h2>Aquí irá la tabla</h2> */}
-          {isAuthenticated && (<DataTable email={user.email}/>)}
-
+          {isAuthenticated && <DataTable email={user.email} />}
         </Paper>
       </Box>
     </Box>

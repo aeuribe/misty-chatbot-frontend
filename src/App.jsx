@@ -23,8 +23,8 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/appointment-form" element={<Form />} />
       <Route path="/reschedule-form" element={<RescheduleForm />} />
-      {/* <Route path="/dashboard" element={<PrivateRoute element={<Dashboard />} />} /> */}
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={<PrivateRoute element={<Dashboard />} />} />
+      {/* <Route path="/dashboard" element={<Dashboard />} /> */}
     </Routes>
   );
 }
