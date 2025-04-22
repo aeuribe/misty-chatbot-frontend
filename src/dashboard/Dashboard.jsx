@@ -1,15 +1,11 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
-import Avatar from "@mui/material/Avatar";
-import LogoutButton from "../logoutButton";
 import DataTable from "./Table";
-import { MdOutlineDateRange } from "react-icons/md";
 import { useAuth0 } from "@auth0/auth0-react";
 import "./dashboard.css";
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth0();
@@ -24,29 +20,7 @@ const Dashboard = () => {
       }}
     >
       {/* Barra que cubre toda la pantalla */}
-      <Paper
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center", // 👈 esto centra verticalmente
-          maxWidth: "100%",
-          backgroundColor: "#ffffff",
-          color: "#000",
-          padding: "16px 32px",
-          fontSize: "1.25rem",
-          fontWeight: 500,
-        }}
-        elevation={5}
-      >
-        <div className="dashboard-avatar">
-          <Avatar src={user.picture}/>
-          <p>{user.nickname}</p>
-        </div>
-
-        <h2 style={{ margin: 0 }}>Misty | Chatbot</h2>
-        <LogoutButton />
-      </Paper>
+      <Navbar />
 
       {/* Contenido principal */}
       <Box
@@ -57,46 +31,7 @@ const Dashboard = () => {
         }}
       >
         {/* Sidebar a la izquierda */}
-        <Box
-          sx={{
-            width: "250px",
-            borderRight: "1px solid rgba(255, 255, 255, 0.2)",
-            padding: "0px 20px 20px 10px",
-            color: "#fff",
-          }}
-        >
-          <List>
-            <ListItem disablePadding>
-              <Box
-                sx={{
-                  width: "100%",
-                  backgroundColor: "rgba(255, 255, 255, 0.07)",
-                  borderRadius: "12px",
-                  padding: "10px 16px",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center", // centra verticalmente
-                    justifyContent: "center", // centra horizontalmente
-                    gap: "8px", // espacio entre ícono y texto
-                    padding: "6px 12px",
-                    alignSelf: "center",
-                  }}
-                >
-                  <MdOutlineDateRange size={20} />
-                  <ListItemText primary="Appointments" />
-                </Box>
-              </Box>
-            </ListItem>
-          </List>
-        </Box>
+        <Sidebar/>
 
         {/* Contenido principal (tabla, etc.) */}
         <Paper
