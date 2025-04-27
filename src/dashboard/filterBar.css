@@ -1,0 +1,33 @@
+.statusButtons {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.statusButton {
+  text-transform: capitalize;
+  border-radius: 20px;
+  font-weight: 600;
+  padding: 6px 18px;
+  min-width: 100px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  border: 2px solid transparent;
+  color: white;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.statusButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.statusButton.MuiButton-contained {
+  background-color: white !important;
+  color: #2575fc !important; /* Azul vibrante */
+  box-shadow: 0 2px 8px rgba(37, 117, 252, 0.4);
+  border-color: white !important;
+}
+
+.statusButton.MuiButton-contained:hover {
+  background-color: #e6f0ff !important;
+}

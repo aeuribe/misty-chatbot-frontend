@@ -1,27 +1,24 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Paper,
   Button,
   Grid,
-  TextField,
   Typography,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from "@mui/material";
 import { getAllAppointmentsByEmail } from "../services/appointmentService.js";
 import { useAsync } from "../hooks/useAsyncClean";
 import useFetchAndLoad from "../hooks/useFetchAndLoad.js";
-import { formatDateTime, formatHour } from "../utilities/formatedDate.js";
+import AppointmentCard from "./AppointmentCard.jsx";
+import SearchComponent from "./SearchComponent.jsx";
+import ConfirmationDialog from "./ConfirmationDialog.jsx";
+import "./appointmentList.css"; // Import the CSS file
 
-const statuses = ["all", "completed", "pending"];
+const statuses = ["current", "completed", "canceled", "expired"];
 
 export default function AppointmentList({ email }) {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("current");
   const [searchTerm, setSearchTerm] = useState("");
   const [appointments, setAppointments] = useState([]);
   const { loading, callEndpoint } = useFetchAndLoad();
@@ -64,14 +61,21 @@ export default function AppointmentList({ email }) {
     return new Date(`${datePart}T${item.start_time}`);
   };
 
-  const filteredData = appointments
-    .filter((item) => {
-      if (filter === "completed")
-        return item.status.toLowerCase() === "completed";
-      if (filter === "pending") return item.status.toLowerCase() === "pending";
-      return true;
-    })
-    .filter((item) => {
+  function getLocalISODateString(date = new Date()) {
+    return (
+      date.getFullYear() +
+      "-" +
+      String(date.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(date.getDate()).padStart(2, "0")
+    );
+  }
+
+  const now = new Date();
+  const todayISO = getLocalISODateString(now);
+
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((item) => {
       const query = searchTerm.toLowerCase();
       return (
         item.client_name.toLowerCase().includes(query) ||
@@ -81,259 +85,184 @@ export default function AppointmentList({ email }) {
         item.end_time.toLowerCase().includes(query)
       );
     });
+  }, [appointments, searchTerm]);
 
-  const sortedAppointments = [...filteredData].sort((a, b) => {
-    const dateA = getDateTime(a);
-    const dateB = getDateTime(b);
-    return dateA - dateB;
-  });
+  const {
+    pastAppointments,
+    nextAppointment,
+    appointmentsToday,
+    otherAppointments,
+    canceledAppointments,
+    completedAppointments,
+  } = useMemo(() => {
+    const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+      const dateA = getDateTime(a);
+      const dateB = getDateTime(b);
+      return dateA - dateB;
+    });
 
-  const now = new Date();
-  const todayISO = now.toISOString().split("T")[0];
+    const past = sortedAppointments.filter(
+      (item) =>
+        getDateTime(item) < now &&
+        item.status &&
+        item.status.toLowerCase() === "pending"
+    );
 
-  const upcomingAppointments = sortedAppointments.filter(
-    (item) => getDateTime(item) >= now
-  );
-  const nextAppointment = sortedAppointments[0] || null;
+    const canceled = sortedAppointments.filter(
+      (item) =>
+        item.status &&
+        item.status.toLowerCase() === "canceled"
+    );
 
-  const appointmentsToday = sortedAppointments.filter(
-    (item) =>
-      item.date.split("T")[0] === todayISO &&
-      (!nextAppointment ||
-        item.appointment_id !== nextAppointment.appointment_id)
-  );
+    const completed = sortedAppointments.filter(
+      (item) =>
+        item.status &&
+        item.status.toLowerCase() === "completed"
+    );
 
-  const otherAppointments = sortedAppointments.filter(
-    (item) =>
-      item.date.split("T")[0] !== todayISO &&
-      (!nextAppointment ||
-        item.appointment_id !== nextAppointment.appointment_id)
-  );
+    const upcoming = sortedAppointments.filter(
+      (item) => getDateTime(item) >= now
+    );
+    const next = upcoming.length > 0 ? upcoming[0] : null;
+    const today = upcoming.filter((item) => {
+      const itemDate = getLocalISODateString(new Date(item.date));
+      return itemDate === todayISO;
+    });
+
+    const other = upcoming.filter((item) => {
+      const itemDate = getLocalISODateString(new Date(item.date));
+      return (
+        itemDate !== todayISO &&
+        (!next || item.appointment_id !== next.appointment_id)
+      );
+    });
+
+
+    return {
+      pastAppointments: past,
+      nextAppointment: next,
+      appointmentsToday: today,
+      otherAppointments: other,
+      canceledAppointments: canceled,
+      completedAppointments: completed
+    };
+  }, [filteredAppointments, now]);
 
   const markAsCompleted = (appointment) => {
-    console.log(`✔ Marking appointment for ${appointment.client_name} as completed`);
+    console.log(
+      `✔ Marking appointment for ${appointment.client_name} as completed`
+    );
   };
 
   const cancelAppointment = (appointment) => {
     console.log(`✖ Canceling appointment for ${appointment.client_name}`);
   };
 
-  const renderAppointmentCard = (item) => (
-    <Grid
-      item
-      xs={12}
-      sm={6}
-      md={4}
-      key={`${item.client_name}-${item.date}-${item.start_time}`}
-    >
-      <Paper
-        sx={{
-          padding: 2,
-          borderRadius: 2,
-          border: "1px solid #ddd",
-          backgroundColor: item.status === "completed" ? "#f1f8e9" : "#fff",
-          position: "relative",
-          minHeight: "200px",
-        }}
-      >
-        <Typography
-          variant="caption"
-          sx={{
-            position: "absolute",
-            top: 8,
-            right: 12,
-            fontWeight: "bold",
-            color: item.status === "completed" ? "#28a745" : "#f39c12",
-          }}
-        >
-          {item.status.toUpperCase()}
-        </Typography>
+  const renderAppointmentSection = (title, appointments) => {
+    if (!appointments || appointments.length === 0) {
+      return null;
+    }
 
+    const filteredAppointments = appointments.filter((item) => item != null);
+
+    if (filteredAppointments.length === 0) {
+      return null;
+    }
+
+    return (
+      <>
         <Typography
           variant="h6"
-          sx={{ fontWeight: "bold", color: "#2c3e50", mb: 1 }}
+          sx={{ mt: 4, mb: 2, fontWeight: "normal", color: "#2674fc" }}
         >
-          {item.client_name}
+          {title}
         </Typography>
-        <Typography variant="body1" sx={{ color: "#555" }}>
-          <strong>Service:</strong> {item.service_name}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#555" }}>
-          <strong>Price:</strong> ${item.price}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#555" }}>
-          <strong>Date:</strong> {formatDateTime(item.date)}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#555" }}>
-          <strong>Time:</strong> {formatHour(item.start_time)} -{" "}
-          {formatHour(item.end_time)}
-        </Typography>
-
-        <div style={{ marginTop: "16px" }}>
-          <Button
-            variant="contained"
-            color="success"
-            size="small"
-            onClick={() => openDialog(item, "complete")}
-            sx={{ mr: 1 }}
-          >
-            ✔ Complete
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            size="small"
-            onClick={() => openDialog(item, "cancel")}
-          >
-            ✖ Cancel
-          </Button>
-        </div>
-      </Paper>
-    </Grid>
-  );
+        <Grid container spacing={2}>
+          {filteredAppointments.map((item) => (
+            <AppointmentCard
+              key={item.appointment_id || Math.random()} // fallback por si no hay id
+              item={item}
+              openDialog={openDialog}
+            />
+          ))}
+        </Grid>
+      </>
+    );
+  };
 
   return (
-    <div>
+    <div className="appointmentListContainer">
       {/* Filtros y búsqueda */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div>
+      <div className="filterSearchContainer">
+        <div className="statusButtons">
           {statuses.map((status) => (
             <Button
               key={status}
               variant={filter === status ? "contained" : "outlined"}
               onClick={() => setFilter(status)}
-              style={{
-                marginRight: "8px",
-                textTransform: "capitalize",
+              className="statusButton"
+              sx={{
                 borderRadius: "20px",
-                color: "#333",
-                borderColor: "#333",
+                backgroundColor: filter === status ? "#2575fc" : "#fff",
+                color: filter === status ? "#fff" : "#2575fc",
+                border: "0px",
+                padding: "8px 16px",
+                fontSize: "0.95rem",
+                fontWeight: 500,
+                transition: "all 0.25s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 4px 10px rgba(37, 117, 252, 0.2)", // Agrega sombra sutil
+                },
               }}
             >
               {status}
             </Button>
           ))}
         </div>
-        <TextField
-          variant="outlined"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-          sx={{
-            width: "250px",
-            backgroundColor: "#fff",
-            borderRadius: "8px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": { borderColor: "#ccc" },
-              "&:hover fieldset": { borderColor: "#888" },
-              "&.Mui-focused fieldset": {
-                borderColor: "#1976d2",
-                boxShadow: "0 0 0 2px rgba(25, 118, 210, 0.2)",
-              },
-            },
-            "& input": {
-              color: "#333",
-              padding: "8px 12px",
-            },
-            transition: "all 0.3s ease",
-          }}
-          InputLabelProps={{ shrink: true }}
+        {/* Use the SearchComponent */}
+        <SearchComponent
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
         />
       </div>
 
       {/* Contenido */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "40px" }}>
+        <div className="loadingContainer">
           <CircularProgress />
         </div>
       ) : (
         <>
-          {nextAppointment && (
-            <>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, fontWeight: "bold", color: "#2674fc" }}
-              >
-                Próxima cita
-              </Typography>
-              <Grid container spacing={2}>
-                {renderAppointmentCard(nextAppointment)}
-              </Grid>
-            </>
-          )}
-
-          {appointmentsToday.length > 0 && (
-            <>
-              <Typography
-                variant="h6"
-                sx={{ mt: 4, mb: 2, fontWeight: "bold", color: "#2674fc" }}
-              >
-                Citas de hoy
-              </Typography>
-              <Grid container spacing={2}>
-                {appointmentsToday.map(renderAppointmentCard)}
-              </Grid>
-            </>
-          )}
-
-          {otherAppointments.length > 0 && (
-            <>
-              <Typography
-                variant="h6"
-                sx={{ mt: 4, mb: 2, fontWeight: "bold", color: "#2674fc" }}
-              >
-                Otras citas
-              </Typography>
-              <Grid container spacing={2}>
-                {otherAppointments.map(renderAppointmentCard)}
-              </Grid>
-            </>
-          )}
-
+          {/* {filter === "current" &&
+            renderAppointmentSection("Next appointment", [nextAppointment])} */}
+          {filter === "current" &&
+            renderAppointmentSection("Today's appointments", appointmentsToday)}
+          {filter === "current" &&
+            renderAppointmentSection("Other appointments", otherAppointments)}
+          {filter === "expired" &&
+            renderAppointmentSection("Expired appointments", pastAppointments)}
+          {filter === "canceled" &&
+            renderAppointmentSection("Canceled appointments", canceledAppointments)}
+          {filter === "completed" &&
+            renderAppointmentSection("Completed appointments", completedAppointments)}
           {!nextAppointment &&
             appointmentsToday.length === 0 &&
-            otherAppointments.length === 0 && (
-              <Typography
-                variant="body1"
-                sx={{ mt: 4, textAlign: "center", color: "#888" }}
-              >
+            otherAppointments.length === 0 &&
+            pastAppointments.length === 0 && (
+              <Typography variant="body1" className="noAppointments">
                 No hay citas para mostrar.
               </Typography>
             )}
         </>
       )}
-      <Dialog
+      {/* Use the ConfirmationDialog */}
+      <ConfirmationDialog
         open={dialogOpen}
         onClose={closeDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          {`¿${actionType === "complete" ? "Completar" : "Cancelar"} cita?`}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            ¿Estás seguro de que quieres {actionType === "complete" ? "completar" : "cancelar"} esta cita?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog}>No</Button>
-          <Button onClick={handleConfirm} autoFocus>
-            Sí
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirm}
+        actionType={actionType}
+        selectedAppointment={selectedAppointment}
+      />
     </div>
   );
 }

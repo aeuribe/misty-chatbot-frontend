@@ -1,0 +1,35 @@
+.appointmentListContainer {
+    padding: 2px;
+  }
+  
+  .filterSearchContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .statusButtons {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .statusButton {
+    margin-right: 8px;
+    text-transform: capitalize;
+    border-radius: 20px;
+  }
+  
+  .loadingContainer {
+    text-align: center;
+    padding: 10px;
+  }
+  
+  .noAppointments {
+    margin-top: 4;
+    text-align: center;
+    color: #888;
+  }
+  
