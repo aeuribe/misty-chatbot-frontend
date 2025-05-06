@@ -1,56 +1,56 @@
-import React from "react";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import DataTable from "./Table";
+// Dashboard.jsx
+import React, { useState, useEffect } from "react";
+import Table from "./Table";
 import { useAuth0 } from "@auth0/auth0-react";
-import "./dashboard.css";
-import Navbar from "./Navbar";
-import Sidebar from "./Sidebar";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import Services from "../MyServices/Services";
+import {
+  fetchAndStoreBusinessByEmail,
+  getStoredBusinessData,
+} from "../services/businessService";
 
 const Dashboard = () => {
-  const { user, isAuthenticated, isLoading } = useAuth0();
+  const { user, isAuthenticated } = useAuth0();
+  const [activeSection, setActiveSection] = useState("Appointments");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [business, setBusiness] = useState(null);
 
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      console.log("user.email: ", user.email);
+      fetchAndStoreBusinessByEmail(user.email)
+        .then((data) => setBusiness(data))
+        .catch(console.error);
+    }
+  }, [isAuthenticated, user]);
   return (
-    <Box
-      sx={{
-        background: "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Barra que cubre toda la pantalla */}
-      <Navbar />
+    <div className="bg-[#F5F7FA] min-h-screen">
+      {/* Pasamos el estado de la sección activa al Navbar */}
+      <Navbar
+        activeSection={activeSection}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      />
 
-      {/* Contenido principal */}
-      <Box
-        sx={{
-          display: "flex",
-          flexGrow: 1,
-          padding: "20px",
-        }}
-      >
-        {/* Sidebar a la izquierda */}
-        <Sidebar/>
+      {/* Pasamos la función que actualiza la sección activa al Sidebar */}
+      <Sidebar setActiveSection={setActiveSection} />
 
-        {/* Contenido principal (tabla, etc.) */}
-        <Paper
-          elevation={6}
-          sx={{
-            flexGrow: 1,
-            backgroundColor: "#ffffff",
-            maxWidth: "80%",
-            marginLeft: "auto",
-            borderRadius: 3,
-            overflow: "hidden",
-            padding: "30px",
-          }}
-        >
-          {/* <h2>Aquí irá la tabla</h2> */}
-          {isAuthenticated && <DataTable email={user.email} />}
-        </Paper>
-      </Box>
-    </Box>
+      <div className="pt-20 pl-60 min-h-screen overflow-y-auto">
+        {/* Contenido principal con scroll si es necesario */}
+        {isAuthenticated && (
+          <>
+            {activeSection === "Appointments" && (
+              <Table email={user.email} searchTerm={searchTerm} />
+            )}
+            {activeSection === "My Services" && (
+              <Services searchTerm={searchTerm} email={user.email} />
+            )}
+            {/* Puedes agregar más secciones aquí */}
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 

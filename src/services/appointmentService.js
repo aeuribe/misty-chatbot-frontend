@@ -10,27 +10,6 @@ export const createAppointment = (appointment) => {
   return { call: axios.post(`${API_URL}/appointments`, appointment, { signal: controller.signal }), controller };
 };
 
-export const createAppointments = async (appointmentData) => {
-  try {
-    const response = await axios.post(
-      `${API_URL}/appointments`,
-      appointmentData
-    );
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      console.error("Error en la respuesta del servidor:", error.response.data);
-      throw new Error(error.response.data.message || "Error en la solicitud");
-    } else if (error.request) {
-      console.error("Sin respuesta del servidor:", error.request);
-      throw new Error("No se recibió respuesta del servidor");
-    } else {
-      console.error("Error al configurar la solicitud:", error.message);
-      throw new Error("Error en la configuración de la solicitud");
-    }
-  }
-};
-
 export const updateAppointment = async (
   appointmentId,
   businessId,
@@ -96,3 +75,57 @@ export const getAllAppointmentsByEmail = (email) => {
   return { call: axios.get(`${API_URL}/appointments/email/${email}`, {signal: controller.signal}), controller }
 }
 
+export const markAppointmentAsCompleted = async (appointmentId) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/appointments/${appointmentId}/status`, // <-- aquí el cambio
+      { status: "completed" }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Error completing appointment");
+  }
+};
+
+export const markAppointmentAsCanceled = async (appointmentId) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/appointments/${appointmentId}/status`, // <-- aquí el cambio
+      { status: "canceled" }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Error canceling appointment");
+  }
+};
+
+
+
+export const cancelAppointmentById = async (appointmentId) => {
+  try {
+    const response = await axios.put(`${API_URL}/appointments/${appointmentId}/status`, { status: "canceled" });
+    console.log("Cita cancelada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error al marcar cita como completada:", error);
+    throw error;
+  }
+}
+
+export async function deleteAppointmentById(appointmentId) {
+  try {
+    const response = await axios.delete(`${API_URL}/appointments/${appointmentId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data; // axios pone la respuesta JSON en data
+  } catch (error) {
+    // Manejo de error más robusto
+    if (error.response && error.response.data && error.response.data.error) {
+      throw new Error(error.response.data.error);
+    } else {
+      throw new Error(error.message || 'Error deleting appointment');
+    }
+  }
+}

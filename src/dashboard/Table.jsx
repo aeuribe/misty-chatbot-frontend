@@ -1,267 +1,309 @@
-import * as React from "react";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  Paper,
-  Button,
-  Grid,
-  Typography,
-  CircularProgress,
-} from "@mui/material";
-import { getAllAppointmentsByEmail } from "../services/appointmentService.js";
+  getAllAppointmentsByEmail,
+  markAppointmentAsCompleted,
+  markAppointmentAsCanceled,
+  cancelAppointmentById,
+} from "../services/appointmentService.js";
 import { useAsync } from "../hooks/useAsyncClean";
 import useFetchAndLoad from "../hooks/useFetchAndLoad.js";
-import AppointmentCard from "./AppointmentCard.jsx";
-import SearchComponent from "./SearchComponent.jsx";
-import ConfirmationDialog from "./ConfirmationDialog.jsx";
-import "./appointmentList.css"; // Import the CSS file
+import ConfirmationDialog from "./components/ConfirmationDialog.jsx";
+import AppointmentCard from "./components/AppointmentCard.jsx"; // Nuevo, ver abajo
+import PopUpConfirmDelete from "../components/PopUpConfirmDelete.jsx";
+import { deleteAppointmentById } from "../services/appointmentService.js";
+import ConfirmationActionDialog from "../components/PopUpConfirmation.jsx";
 
-const statuses = ["current", "completed", "canceled", "expired"];
+const mainTabs = ["Today", "Upcoming", "History"];
+const historySubTabs = ["Completed", "Canceled", "Expired"];
 
-export default function AppointmentList({ email }) {
-  const [filter, setFilter] = useState("current");
-  const [searchTerm, setSearchTerm] = useState("");
+function getLocalISODateString(date = new Date()) {
+  return (
+    date.getFullYear() +
+    "-" +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(date.getDate()).padStart(2, "0")
+  );
+}
+
+export default function AppointmentList({ email, searchTerm }) {
+  const [mainTab, setMainTab] = useState(0);
+  const [historyTab, setHistoryTab] = useState(0);
   const [appointments, setAppointments] = useState([]);
   const { loading, callEndpoint } = useFetchAndLoad();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [actionType, setActionType] = useState(null);
 
-  const openDialog = (appointment, action) => {
-    setSelectedAppointment(appointment);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [appointmentToAction, setAppointmentToAction] = useState(null);
+
+  const openActionModal = (appointment, action) => {
+    setAppointmentToAction(appointment);
     setActionType(action);
-    setDialogOpen(true);
+    setShowActionModal(true);
   };
 
-  const closeDialog = () => {
-    setDialogOpen(false);
-  };
+  const handleConfirmAction = async () => {
+    if (!appointmentToAction || !actionType) return;
 
-  const handleConfirm = () => {
-    if (actionType === "complete") {
-      markAsCompleted(selectedAppointment);
-    } else if (actionType === "cancel") {
-      cancelAppointment(selectedAppointment);
+    try {
+      let updatedAppointment;
+      if (actionType === "complete") {
+        updatedAppointment = await markAppointmentAsCompleted(
+          appointmentToAction.appointment_id
+        );
+      } else if (actionType === "cancel") {
+        updatedAppointment = await markAppointmentAsCanceled(
+          appointmentToAction.appointment_id
+        );
+        console.log("updatedAppointment", updatedAppointment);
+        console.log(
+          "un appointment viejo",
+          appointments.find(
+            (a) => a.appointment_id === updatedAppointment.appointment_id
+          )
+        );
+      }
+
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.appointment_id === updatedAppointment.appointment_id
+            ? { ...a, status: updatedAppointment.status }
+            : a
+        )
+      );
+
+      setShowActionModal(false);
+      setAppointmentToAction(null);
+      setActionType(null);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
     }
-    closeDialog();
   };
 
-  const successFunctionGetAppointments = (data) => {
-    if (!data) return;
-    setAppointments(data);
+  const openDeleteModal = (appointment) => {
+    setAppointmentToDelete(appointment);
+    setShowDeleteModal(true);
   };
 
-  const getAppointments = async () => {
-    return callEndpoint(getAllAppointmentsByEmail(email));
+  const handleConfirmDelete = async () => {
+    if (!appointmentToDelete) return;
+    try {
+      await deleteAppointmentById(appointmentToDelete.appointment_id);
+      setAppointments((prev) =>
+        prev.filter(
+          (a) => a.appointment_id !== appointmentToDelete.appointment_id
+        )
+      );
+      setShowDeleteModal(false);
+      setAppointmentToDelete(null);
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+    }
   };
+  // Fetch appointments
+  useAsync(
+    () => callEndpoint(getAllAppointmentsByEmail(email)),
+    (data) => setAppointments(Array.isArray(data) ? data : []),
+    null,
+    null,
+    []
+  );
 
-  useAsync(getAppointments, successFunctionGetAppointments, null, null, []);
-
+  // Helpers
   const getDateTime = (item) => {
     const datePart = item.date.split("T")[0];
     return new Date(`${datePart}T${item.start_time}`);
   };
 
-  function getLocalISODateString(date = new Date()) {
-    return (
-      date.getFullYear() +
-      "-" +
-      String(date.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(date.getDate()).padStart(2, "0")
-    );
-  }
-
   const now = new Date();
   const todayISO = getLocalISODateString(now);
 
+  // Filtrado y agrupación
   const filteredAppointments = useMemo(() => {
-    return appointments.filter((item) => {
-      const query = searchTerm.toLowerCase();
-      return (
-        item.client_name.toLowerCase().includes(query) ||
-        item.service_name.toLowerCase().includes(query) ||
-        item.date.toLowerCase().includes(query) ||
-        item.start_time.toLowerCase().includes(query) ||
-        item.end_time.toLowerCase().includes(query)
-      );
-    });
+    if (!Array.isArray(appointments)) return [];
+    const query = searchTerm.toLowerCase();
+    return appointments.filter(
+      (item) =>
+        item.client_name?.toLowerCase().includes(query) ||
+        item.service_name?.toLowerCase().includes(query) ||
+        item.date?.toLowerCase().includes(query) ||
+        item.start_time?.toLowerCase().includes(query) ||
+        item.end_time?.toLowerCase().includes(query)
+    );
   }, [appointments, searchTerm]);
 
   const {
     pastAppointments,
-    nextAppointment,
     appointmentsToday,
     otherAppointments,
     canceledAppointments,
     completedAppointments,
   } = useMemo(() => {
-    const sortedAppointments = [...filteredAppointments].sort((a, b) => {
-      const dateA = getDateTime(a);
-      const dateB = getDateTime(b);
-      return dateA - dateB;
-    });
-
-    const past = sortedAppointments.filter(
+    if (!Array.isArray(filteredAppointments)) return {};
+    const sorted = [...filteredAppointments].sort(
+      (a, b) => getDateTime(a) - getDateTime(b)
+    );
+    const past = sorted.filter(
       (item) =>
-        getDateTime(item) < now &&
-        item.status &&
-        item.status.toLowerCase() === "pending"
+        getDateTime(item) < now && item.status?.toLowerCase() === "pending"
     );
-
-    const canceled = sortedAppointments.filter(
+    const canceled = sorted.filter(
+      (item) => item.status?.toLowerCase() === "canceled"
+    );
+    const completed = sorted.filter(
+      (item) => item.status?.toLowerCase() === "completed"
+    );
+    const today = sorted.filter(
+      (item) => getLocalISODateString(new Date(item.date)) === todayISO
+    );
+    const other = sorted.filter(
       (item) =>
-        item.status &&
-        item.status.toLowerCase() === "canceled"
+        getLocalISODateString(new Date(item.date)) > todayISO &&
+        item.status?.toLowerCase() !== "canceled" &&
+        item.status?.toLowerCase() !== "completed"
     );
-
-    const completed = sortedAppointments.filter(
-      (item) =>
-        item.status &&
-        item.status.toLowerCase() === "completed"
-    );
-
-    const upcoming = sortedAppointments.filter(
-      (item) => getDateTime(item) >= now
-    );
-    const next = upcoming.length > 0 ? upcoming[0] : null;
-    const today = upcoming.filter((item) => {
-      const itemDate = getLocalISODateString(new Date(item.date));
-      return itemDate === todayISO;
-    });
-
-    const other = upcoming.filter((item) => {
-      const itemDate = getLocalISODateString(new Date(item.date));
-      return (
-        itemDate !== todayISO &&
-        (!next || item.appointment_id !== next.appointment_id)
-      );
-    });
-
-
     return {
       pastAppointments: past,
-      nextAppointment: next,
       appointmentsToday: today,
       otherAppointments: other,
       canceledAppointments: canceled,
-      completedAppointments: completed
+      completedAppointments: completed,
     };
   }, [filteredAppointments, now]);
 
-  const markAsCompleted = (appointment) => {
-    console.log(
-      `✔ Marking appointment for ${appointment.client_name} as completed`
-    );
+  // Acciones
+  const openDialog = (appointment, action) => {
+    console.log("openDialog called", appointment, action);
+    setSelectedAppointment(appointment);
+    setActionType(action);
+    setDialogOpen(true);
   };
 
-  const cancelAppointment = (appointment) => {
-    console.log(`✖ Canceling appointment for ${appointment.client_name}`);
-  };
+  const closeDialog = () => setDialogOpen(false);
 
-  const renderAppointmentSection = (title, appointments) => {
-    if (!appointments || appointments.length === 0) {
-      return null;
+  const handleConfirm = async () => {
+    if (actionType === "complete") {
+      await markAppointmentAsCompleted(selectedAppointment.appointment_id);
+      setAppointments((prev) =>
+        prev.map((item) =>
+          item.appointment_id === selectedAppointment.appointment_id
+            ? { ...item, status: "completed" }
+            : item
+        )
+      );
+    } else if (actionType === "cancel") {
+      await cancelAppointmentById(selectedAppointment.appointment_id);
+      setAppointments((prev) =>
+        prev.map((item) =>
+          item.appointment_id === selectedAppointment.appointment_id
+            ? { ...item, status: "canceled" }
+            : item
+        )
+      );
     }
-
-    const filteredAppointments = appointments.filter((item) => item != null);
-
-    if (filteredAppointments.length === 0) {
-      return null;
-    }
-
-    return (
-      <>
-        <Typography
-          variant="h6"
-          sx={{ mt: 4, mb: 2, fontWeight: "normal", color: "#2674fc" }}
-        >
-          {title}
-        </Typography>
-        <Grid container spacing={2}>
-          {filteredAppointments.map((item) => (
-            <AppointmentCard
-              key={item.appointment_id || Math.random()} // fallback por si no hay id
-              item={item}
-              openDialog={openDialog}
-            />
-          ))}
-        </Grid>
-      </>
-    );
+    closeDialog();
   };
 
+  // Render helpers
+  const renderAppointments = (appointments) =>
+    appointments && appointments.length > 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {appointments.map((item) => (
+          <AppointmentCard
+            key={item.appointment_id}
+            item={item}
+            openActionModal={openActionModal}
+            openDeleteModal={openDeleteModal}
+          />
+        ))}
+      </div>
+    ) : (
+      <div className="text-center text-gray-400 py-8">
+        No hay citas para mostrar.
+      </div>
+    );
+  // UI
   return (
-    <div className="appointmentListContainer">
-      {/* Filtros y búsqueda */}
-      <div className="filterSearchContainer">
-        <div className="statusButtons">
-          {statuses.map((status) => (
-            <Button
-              key={status}
-              variant={filter === status ? "contained" : "outlined"}
-              onClick={() => setFilter(status)}
-              className="statusButton"
-              sx={{
-                borderRadius: "20px",
-                backgroundColor: filter === status ? "#2575fc" : "#fff",
-                color: filter === status ? "#fff" : "#2575fc",
-                border: "0px",
-                padding: "8px 16px",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                transition: "all 0.25s ease-in-out",
-                "&:hover": {
-                  boxShadow: "0 4px 10px rgba(37, 117, 252, 0.2)", // Agrega sombra sutil
-                },
-              }}
-            >
-              {status}
-            </Button>
-          ))}
-        </div>
-        {/* Use the SearchComponent */}
-        <SearchComponent
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-        />
+    <div className="w-full min-h-screen mt-4">
+      {/* Tabs principales */}
+      <div className="flex space-x-2 mb-4 ml-4 bg-[#F5F7FA]">
+        {mainTabs.map((tab, i) => (
+          <button
+            key={tab}
+            className={`px-4 py-2 rounded-lg font-semibold shadow-lg ${
+              mainTab === i
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-700 hover:bg-blue-100"
+            }`}
+            onClick={() => setMainTab(i)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Contenido */}
-      {loading ? (
-        <div className="loadingContainer">
-          <CircularProgress />
-        </div>
-      ) : (
-        <>
-          {/* {filter === "current" &&
-            renderAppointmentSection("Next appointment", [nextAppointment])} */}
-          {filter === "current" &&
-            renderAppointmentSection("Today's appointments", appointmentsToday)}
-          {filter === "current" &&
-            renderAppointmentSection("Other appointments", otherAppointments)}
-          {filter === "expired" &&
-            renderAppointmentSection("Expired appointments", pastAppointments)}
-          {filter === "canceled" &&
-            renderAppointmentSection("Canceled appointments", canceledAppointments)}
-          {filter === "completed" &&
-            renderAppointmentSection("Completed appointments", completedAppointments)}
-          {!nextAppointment &&
-            appointmentsToday.length === 0 &&
-            otherAppointments.length === 0 &&
-            pastAppointments.length === 0 && (
-              <Typography variant="body1" className="noAppointments">
-                No hay citas para mostrar.
-              </Typography>
+      <div className="bg-[#F5F7FA] rounded-b-lg p-4 min-h-[300px]">
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <>
+            {mainTab === 0 && renderAppointments(appointmentsToday)}
+            {mainTab === 1 && renderAppointments(otherAppointments)}
+            {mainTab === 2 && (
+              <>
+                {/* Subtabs */}
+                <div className="flex space-x-2 mb-4">
+                  {historySubTabs.map((tab, i) => (
+                    <button
+                      key={tab}
+                      className={`px-3 py-1 rounded font-medium text-sm ${
+                        historyTab === i
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-500 hover:bg-blue-50"
+                      }`}
+                      onClick={() => setHistoryTab(i)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+                {historyTab === 0 && renderAppointments(completedAppointments)}
+                {historyTab === 1 && renderAppointments(canceledAppointments)}
+                {historyTab === 2 && renderAppointments(pastAppointments)}
+              </>
             )}
-        </>
-      )}
-      {/* Use the ConfirmationDialog */}
-      <ConfirmationDialog
-        open={dialogOpen}
-        onClose={closeDialog}
-        onConfirm={handleConfirm}
+          </>
+        )}
+      </div>
+
+      {/* Confirmación */}
+
+      <PopUpConfirmDelete
+        isOpen={showDeleteModal}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        loading={loading}
+        serviceName={appointmentToDelete?.service_name || "esta cita"}
+      />
+      <ConfirmationActionDialog
+        isOpen={showActionModal}
+        onConfirm={handleConfirmAction}
+        onCancel={() => {
+          setShowActionModal(false);
+          setAppointmentToAction(null);
+          setActionType(null);
+        }}
+        loading={loading}
+        appointment={appointmentToAction}
         actionType={actionType}
-        selectedAppointment={selectedAppointment}
       />
     </div>
   );

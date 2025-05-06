@@ -1,14 +1,12 @@
-// tailwind.config.js
-const {heroui} = require("@heroui/theme");
-
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
-    "./node_modules/@heroui/theme/dist/components/(button|ripple|spinner).js",
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {},
   },
   darkMode: "class",
-  plugins: [heroui()],
+  plugins: [],
 };

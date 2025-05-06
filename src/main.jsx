@@ -5,9 +5,7 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { HeroUIProvider } from "@heroui/react";
 import App from "./App.jsx";
-import Form from "./Form/Form.jsx";
 import "./main.css";
 import { Auth0Provider } from "@auth0/auth0-react";
 
@@ -26,7 +24,6 @@ const client_id = import.meta.env.VITE_AUTH0_CLIENT_ID;
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
-      <HeroUIProvider>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <BrowserRouter>
             <Auth0Provider
@@ -41,7 +38,6 @@ createRoot(document.getElementById("root")).render(
             </Auth0Provider>
           </BrowserRouter>
         </LocalizationProvider>
-      </HeroUIProvider>
     </ThemeProvider>
   </StrictMode>
 );

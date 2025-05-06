@@ -2,15 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 * {
   box-sizing: border-box;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: "Montserrat", sans-serif;
+  font-family: 'Inter', sans-serif;
   color: #333;
   /* background: linear-gradient(to top, #30cfd0 0%, #330867 100%); */
   background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
@@ -32,23 +35,3 @@ html, body {
   }
 }
 
-
-h1,
-h2 {
-  font-family: "Montserrat", sans-serif;
-  font-weight: 600;
-  color: #222;
-}
-
-h1 {
-  font-size: 24px;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-h2 {
-  font-size: 18px;
-  font-weight: 400;
-  text-align: center;
-  color: #555;
-}
