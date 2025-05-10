@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { BsCalendar2Date } from "react-icons/bs";
 import { HiOutlineSquares2X2 } from "react-icons/hi2";
+import { FiCreditCard, FiSettings } from "react-icons/fi"; // Nuevos íconos
 import "../dashboard.css";
 
 const Sidebar = ({ setActiveSection }) => {
@@ -16,6 +17,16 @@ const Sidebar = ({ setActiveSection }) => {
       id: "services",
       icon: <HiOutlineSquares2X2 className="w-[25px] h-[25px]" />,
       label: "My Services",
+    },
+    {
+      id: "subscription",
+      icon: <FiCreditCard className="w-[25px] h-[25px]" />,
+      label: "Subscription",
+    },
+    {
+      id: "settings",
+      icon: <FiSettings className="w-[25px] h-[25px]" />,
+      label: "Settings",
     },
   ];
 

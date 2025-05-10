@@ -5,6 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Services from "../MyServices/Services";
+import SubscriptionPage from "../Suscription/SubscriptionPage";
 import {
   fetchAndStoreBusinessByEmail,
   getStoredBusinessData,
@@ -24,6 +25,12 @@ const Dashboard = () => {
         .catch(console.error);
     }
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (activeSection === "Subscription") {
+      console.log("business: ", business);
+    }
+  }, [activeSection, business]);
   return (
     <div className="bg-[#F5F7FA] min-h-screen">
       {/* Pasamos el estado de la sección activa al Navbar */}
@@ -46,7 +53,9 @@ const Dashboard = () => {
             {activeSection === "My Services" && (
               <Services searchTerm={searchTerm} email={user.email} />
             )}
-            {/* Puedes agregar más secciones aquí */}
+            {activeSection === "Subscription" && (
+              <SubscriptionPage business={business} />
+            )}
           </>
         )}
       </div>

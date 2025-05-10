@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Form from "./Form/Form.jsx";
 import { RescheduleForm } from "./Form/RescheduleForm.jsx";
 import Dashboard from "./dashboard/Dashboard.jsx";
+import SubscriptionPage from "./Suscription/SubscriptionPage.jsx";
 import Home from "./Home/Home.jsx";
 import { useAuth0 } from "@auth0/auth0-react";
 import "./App.css";
@@ -24,6 +25,7 @@ function App() {
       <Route path="/appointment-form" element={<Form />} />
       <Route path="/reschedule-form" element={<RescheduleForm />} />
       <Route path="/dashboard" element={<PrivateRoute element={<Dashboard />} />} />
+      <Route path="/subscription" element={<PrivateRoute element={<SubscriptionPage/>} />} />
       {/* <Route path="/dashboard" element={<Dashboard />} /> */}
     </Routes>
   );

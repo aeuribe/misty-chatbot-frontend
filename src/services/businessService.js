@@ -29,3 +29,20 @@ export const fetchAndStoreBusinessByEmail = async (email) => {
 export const getStoredBusinessData = () => {
   return businessSingleton.getBusinessData();
 };
+
+export const updateStripeCustomerId = async (businessId, stripeCustomerId) => {
+
+  console.log("el business se envia como:",businessId);
+  console.log("el stripeCustomerId se envia como:",stripeCustomerId);
+
+  try {
+    const response = await axios.put(`${API_URL}/business/${businessId}/stripe-customer`, {
+      stripe_customer_id: stripeCustomerId,
+    });
+    return response.data;
+  } catch (error) {
+    const message =
+      error.response?.data?.error || error.message || "Error updating stripe_customer_id";
+    throw new Error(message);
+  }
+}

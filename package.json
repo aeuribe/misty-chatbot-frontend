@@ -22,6 +22,8 @@
     "@mui/material": "^6.4.10",
     "@mui/x-data-grid": "^7.28.3",
     "@mui/x-date-pickers": "^7.27.3",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.0",
     "@tailwindcss/vite": "^4.1.4",
     "axios": "^1.8.3",
     "dayjs": "^1.11.13",
