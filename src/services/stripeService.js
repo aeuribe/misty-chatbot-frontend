@@ -19,10 +19,11 @@ export async function createStripeCustomer({ email, name }) {
   }
 }
 
-export async function createCheckoutSession(stripe_customer_id) {
+export async function createCheckoutSession(stripe_customer_id, business_id) {
     try {
       const response = await axios.post(`${API_URL}/stripe/create-checkout-session`, {
         stripe_customer_id,
+        business_id,
       });
       // El backend responde con { id: session.id }
       return response.data.id; // id de la sesión de Stripe Checkout

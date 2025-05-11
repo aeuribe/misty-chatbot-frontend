@@ -22,8 +22,10 @@ const SubscriptionPage = ({ business }) => {
       if (business.stripe_customer_id) {
         try {
           // Llama a tu backend para obtener la suscripción REAL
-          const subscriptionData = await getSubscriptionByBusinessId(business.business_id);
-          console.log("subscriptionData: ",subscriptionData);
+          const subscriptionData = await getSubscriptionByBusinessId(
+            business.business_id
+          );
+          console.log("subscriptionData: ", subscriptionData);
           if (subscriptionData) {
             setSubscription({
               planName: subscriptionData.planName,
@@ -41,47 +43,56 @@ const SubscriptionPage = ({ business }) => {
         }
       }
     };
-  
+
     fetchSubscriptionStatus();
   }, [business.stripe_customer_id]);
-  
 
   // Lógica de estado
   const isFirstTime = !business.stripe_customer_id || subscription === null;
   const isActive = subscription?.status === "active";
   const isRenew = subscription && !isActive;
-  const stripePromise = loadStripe('pk_test_51RMJBcR2dbxqYM1Q13A1IbccFvbV5XSIJEtE8hJN0OWmE9nsq2qT8MoTasrV9OWc61bMSpx0QynqghWqHFBnZddT00IutxaNvM');
+  const stripePromise = loadStripe(
+    "pk_test_51RMJBcR2dbxqYM1Q13A1IbccFvbV5XSIJEtE8hJN0OWmE9nsq2qT8MoTasrV9OWc61bMSpx0QynqghWqHFBnZddT00IutxaNvM"
+  );
 
   // Handlers
   const handleSubscribe = async () => {
     const businessId = business.business_id;
-    try {
-      // 1. Crear cliente Stripe y obtener el ID
-      const customer = await createStripeCustomer({
-        name: business.business_name,
-        email: business.email,
-      });
-  
-      if (!customer) {
-        throw new Error("No se pudo crear el cliente en Stripe");
-      }
-  
-      // 2. Actualizar el negocio con el stripe_customer_id
-      await updateStripeCustomerId(businessId, customer);
-  
-      console.log("Cliente Stripe creado:", customer);
+    let customerId = business.stripe_customer_id;
 
-      // 3. Crear sesión de checkout
-      const sessionId = await createCheckoutSession(customer);
-  
+    try {
+      // 1. Crear cliente Stripe solo si no existe
+      if (!customerId) {
+        const customer = await createStripeCustomer({
+          name: business.business_name,
+          email: business.email,
+        });
+
+        if (!customer) {
+          throw new Error("No se pudo crear el cliente en Stripe");
+        }
+
+        customerId = customer;
+
+        // 2. Actualizar el negocio con el stripe_customer_id
+        await updateStripeCustomerId(businessId, customerId);
+
+        console.log("Cliente Stripe creado:", customerId);
+      } else {
+        console.log("Usando cliente Stripe existente:", customerId);
+      }
+
+      // 3. Crear sesión de checkout con el customerId y businessId
+      const sessionId = await createCheckoutSession(customerId, businessId);
+
       if (!sessionId) {
         throw new Error("No se pudo crear la sesión de checkout");
       }
-  
+
       // 4. Redirigir a Stripe Checkout
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({ sessionId });
-  
+
       if (error) {
         console.error("Error redirigiendo a Stripe Checkout:", error.message);
         // Aquí puedes mostrar un mensaje al usuario
@@ -91,12 +102,53 @@ const SubscriptionPage = ({ business }) => {
       // Aquí puedes mostrar un mensaje de error amigable al usuario
     }
   };
-  
 
-  const handlePay = () => {
-    // Aquí deberías redirigir al usuario al pago de renovación
-    window.location.href = "https://stripe.com/pay";
-  };
+  const handlePay = async () => {
+    const businessId = business.business_id;
+    let customerId = business.stripe_customer_id;
+  
+    try {
+      if (!customerId) {
+        // Si no hay cliente Stripe, crea uno (por si acaso)
+        const customer = await createStripeCustomer({
+          name: business.business_name,
+          email: business.email,
+        });
+  
+        if (!customer) {
+          throw new Error("No se pudo crear el cliente en Stripe");
+        }
+  
+        customerId = customer;
+  
+        await updateStripeCustomerId(businessId, customerId);
+  
+        console.log("Cliente Stripe creado para renovación:", customerId);
+      } else {
+        console.log("Usando cliente Stripe existente para renovación:", customerId);
+      }
+  
+      // Crear sesión de checkout para renovar la suscripción
+      // Aquí asumo que tu backend sabe manejar que es renovación por businessId
+      const sessionId = await createCheckoutSession(customerId, businessId);
+  
+      if (!sessionId) {
+        throw new Error("No se pudo crear la sesión de checkout para renovación");
+      }
+  
+      // Redirigir a Stripe Checkout
+      const stripe = await stripePromise;
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+  
+      if (error) {
+        console.error("Error redirigiendo a Stripe Checkout para renovación:", error.message);
+        // Mostrar mensaje al usuario si quieres
+      }
+    } catch (error) {
+      console.error("Error en renovación de suscripción:", error.message);
+      // Mostrar mensaje de error amigable al usuario si quieres
+    }
+  };  
 
   return (
     <div className="m-4 rounded-xl bg-white p-6 shadow-md max-w-xl mx-auto">
@@ -163,8 +215,14 @@ const SubscriptionPage = ({ business }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-            <InfoRow label="Access until" value={subscription.nextBilling} />
-            <InfoRow label="Start date" value={subscription.startDate} />
+            <InfoRow
+              label="Access until"
+              value={new Date(subscription.nextBilling).toLocaleDateString()}
+            />
+            <InfoRow
+              label="Start date"
+              value={new Date(subscription.startDate).toLocaleDateString()}
+            />
           </div>
 
           <div>
