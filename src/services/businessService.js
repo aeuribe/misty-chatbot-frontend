@@ -1,12 +1,17 @@
 import axios from "axios";
-const API_URL = 'http://localhost:3000/api';
+const API_URL = "http://localhost:3000/api";
 import { loadAbort } from "../utilities/loadAbort.utility";
 import businessSingleton from "./businessSingleton";
 
 export const getBusinessById = (businessId) => {
   const controller = loadAbort();
-  return { call: axios.get(`${API_URL}/business/${businessId}`, {signal: controller.signal}), controller }
-}
+  return {
+    call: axios.get(`${API_URL}/business/${businessId}`, {
+      signal: controller.signal,
+    }),
+    controller,
+  };
+};
 
 export const getBusinessByEmail = async (email) => {
   try {
@@ -31,18 +36,38 @@ export const getStoredBusinessData = () => {
 };
 
 export const updateStripeCustomerId = async (businessId, stripeCustomerId) => {
-
-  console.log("el business se envia como:",businessId);
-  console.log("el stripeCustomerId se envia como:",stripeCustomerId);
+  console.log("el business se envia como:", businessId);
+  console.log("el stripeCustomerId se envia como:", stripeCustomerId);
 
   try {
-    const response = await axios.put(`${API_URL}/business/${businessId}/stripe-customer`, {
-      stripe_customer_id: stripeCustomerId,
-    });
+    const response = await axios.put(
+      `${API_URL}/business/${businessId}/stripe-customer`,
+      {
+        stripe_customer_id: stripeCustomerId,
+      }
+    );
     return response.data;
   } catch (error) {
     const message =
-      error.response?.data?.error || error.message || "Error updating stripe_customer_id";
+      error.response?.data?.error ||
+      error.message ||
+      "Error updating stripe_customer_id";
     throw new Error(message);
   }
-}
+};
+
+// Servicio para actualizar business (nombre y dirección) por ID
+export const updateBusiness = async (businessId, businessName, address) => {
+  try {
+    console.log("business recibido: ",businessId);
+    const response = await axios.put(`${API_URL}/business/${businessId}`, {
+      businessName,
+      address,
+    });
+    return response.data; // Datos actualizados del negocio
+  } catch (error) {
+    const message =
+      error.response?.data?.error || error.message || "Error updating business";
+    throw new Error(message);
+  }
+};

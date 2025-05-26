@@ -224,7 +224,7 @@ export default function AppointmentList({ email, searchTerm }) {
       </div>
     ) : (
       <div className="text-center text-gray-400 py-8">
-        No hay citas para mostrar.
+        There are no appointments to display.
       </div>
     );
   // UI

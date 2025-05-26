@@ -44,7 +44,7 @@ const AppointmentCard = ({ item, openActionModal, openDeleteModal }) => {
   const statusLabel = item.status ? item.status.toUpperCase() : "PENDING";
 
   return (
-    <div className="bg-white shadow-md rounded-2xl p-4 flex flex-col justify-between min-h-[220px]">
+    <div className="bg-white shadow-md rounded-2xl p-4 flex flex-col justify-between min-h-[220px] max-w-xs">
       {/* Top Row: ID & Status */}
       <div className="flex justify-between items-start mb-2">
         <span className="text-xs font-semibold text-gray-500 select-text">

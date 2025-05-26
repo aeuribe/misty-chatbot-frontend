@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Services from "../MyServices/Services";
 import SubscriptionPage from "../Suscription/SubscriptionPage";
+import Settings from "../settings/Settings";
 import {
   fetchAndStoreBusinessByEmail,
   getStoredBusinessData,
@@ -56,6 +57,10 @@ const Dashboard = () => {
             {activeSection === "Subscription" && (
               <SubscriptionPage business={business} />
             )}
+            {activeSection === "Settings" && (
+              <Settings business={business} />
+            )}
+            
           </>
         )}
       </div>

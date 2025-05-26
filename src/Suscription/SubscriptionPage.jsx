@@ -106,7 +106,7 @@ const SubscriptionPage = ({ business }) => {
   const handlePay = async () => {
     const businessId = business.business_id;
     let customerId = business.stripe_customer_id;
-  
+
     try {
       if (!customerId) {
         // Si no hay cliente Stripe, crea uno (por si acaso)
@@ -114,44 +114,52 @@ const SubscriptionPage = ({ business }) => {
           name: business.business_name,
           email: business.email,
         });
-  
+
         if (!customer) {
           throw new Error("No se pudo crear el cliente en Stripe");
         }
-  
+
         customerId = customer;
-  
+
         await updateStripeCustomerId(businessId, customerId);
-  
+
         console.log("Cliente Stripe creado para renovación:", customerId);
       } else {
-        console.log("Usando cliente Stripe existente para renovación:", customerId);
+        console.log(
+          "Usando cliente Stripe existente para renovación:",
+          customerId
+        );
       }
-  
+
       // Crear sesión de checkout para renovar la suscripción
       // Aquí asumo que tu backend sabe manejar que es renovación por businessId
       const sessionId = await createCheckoutSession(customerId, businessId);
-  
+
       if (!sessionId) {
-        throw new Error("No se pudo crear la sesión de checkout para renovación");
+        throw new Error(
+          "No se pudo crear la sesión de checkout para renovación"
+        );
       }
-  
+
       // Redirigir a Stripe Checkout
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({ sessionId });
-  
+
       if (error) {
-        console.error("Error redirigiendo a Stripe Checkout para renovación:", error.message);
+        console.error(
+          "Error redirigiendo a Stripe Checkout para renovación:",
+          error.message
+        );
         // Mostrar mensaje al usuario si quieres
       }
     } catch (error) {
       console.error("Error en renovación de suscripción:", error.message);
       // Mostrar mensaje de error amigable al usuario si quieres
     }
-  };  
+  };
 
   return (
-    <div className="m-4 rounded-xl bg-white p-6 shadow-md max-w-xl mx-auto">
+    <div className="m-4 rounded-xl bg-white p-6 shadow-md max-w-2xl h-full">
       <div className="flex items-center gap-4 mb-6">
         <img
           src={user?.picture || "https://via.placeholder.com/40?text=U"}
@@ -169,7 +177,7 @@ const SubscriptionPage = ({ business }) => {
       </div>
 
       {isFirstTime && (
-        <div className="text-center space-y-4">
+        <div className="max-w-md ml-16 text-start space-y-3">
           <h2 className="text-xl font-semibold text-[#343C6A]">
             You are not subscribed yet
           </h2>
@@ -226,15 +234,36 @@ const SubscriptionPage = ({ business }) => {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-[#343C6A] mb-2">
+            <h3 className="text-sm font-medium text-green-700 mb-2">
               Your plan includes:
             </h3>
-            <ul className="list-disc list-inside text-gray-600 space-y-1 text-sm">
-              <li>Appointment automation</li>
-              <li>Business hours customization</li>
-              <li>Client reminders</li>
-              <li>WhatsApp integration</li>
-              <li>Priority support</li>
+            <ul className="list-inside text-green-600 space-y-1 text-sm">
+              {[
+                "Appointment automation",
+                "Business hours customization",
+                "Client management",
+                "WhatsApp integration",
+                "Priority support",
+              ].map((item) => (
+                <li key={item} className="flex items-center">
+                  <svg
+                    className="w-4 h-4 text-green-400 mr-2 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  {item}
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -256,8 +285,8 @@ const SubscriptionPage = ({ business }) => {
 
 const InfoRow = ({ label, value }) => (
   <div className="flex justify-between border-b pb-1 border-gray-200">
-    <span className="font-medium">{label}:</span>
-    <span>{value}</span>
+    <span className="font-light">{label}:</span>
+    <span className="font-bold">{value}</span>
   </div>
 );
 

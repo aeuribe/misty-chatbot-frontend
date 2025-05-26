@@ -118,6 +118,7 @@ function Form() {
     setButtonColor("secondary");
     setButtonClicked(true);
 
+    console.log("client.id: ",client.id);
     const newAppointment = {
       businessId: urlBusinessId,
       clientId: client.id,
@@ -170,13 +171,14 @@ function Form() {
   // Post Client Data
   const postClient = async () => {
     if (isValid == false || buttonClicked == false || clientExist === true) {
-      console.log("saliendo de esta mrd");
       return;
     }
     setButtonText("Enviando...");
     return callEndpoint(createClient(adaptClientToBackend(client)));
   };
   const successFunctionCreateClient = (data) => {
+    console.log("data de sucessCreate: ",data)
+    setClient(adaptBackendToClient(data)); // <-- AQUÍ!
     setButtonText("Enviado");
   };
   useAsync(postClient, successFunctionCreateClient, null, null, [
